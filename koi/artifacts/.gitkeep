@@ -1,0 +1,7 @@
+Drop your Koi deployment artifacts here (these are gitignored and never committed):
+
+  Koi.msi      - Windows Service installer  (Settings -> Deployment -> Installed)
+  mdm.ps1      - Agentless script package   (Settings -> Deployment -> Agentless -> Download)
+
+Both come from your Cortex AES deployment portal with your customer_id / slug.
+This repo deliberately does NOT contain them.

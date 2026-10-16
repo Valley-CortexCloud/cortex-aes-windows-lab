@@ -1,0 +1,30 @@
+# --- Terraform ---
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+.terraform.lock.hcl
+override.tf
+override.tf.json
+
+# --- Secrets / keys ---
+*.pem
+*.ppk
+*.key
+
+# --- Koi deployment artifacts (you supply these; never commit) ---
+koi/artifacts/*
+!koi/artifacts/.gitkeep
+
+# --- Generated at runtime on the lab box ---
+provisioning/expected-inventory.json
+koi/*.log
+koi/run-*.transcript.log
+*.transcript.log
+
+# --- OS cruft ---
+.DS_Store
+Thumbs.db
