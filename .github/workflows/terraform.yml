@@ -30,7 +30,7 @@ on:
         type: choice
         required: true
         default: plan
-        options: [plan, apply, destroy]
+        options: [plan, apply, destroy, credentials]
 
 permissions:
   contents: read
@@ -104,7 +104,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform plan
-        if: ${{ github.event.inputs.action != 'destroy' }}
+        if: ${{ github.event_name == 'pull_request' || github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply' }}
         run: terraform plan -input=false -out=tfplan
 
       - name: Terraform apply
@@ -115,18 +115,40 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' }}
         run: terraform destroy -input=false -auto-approve
 
-      - name: Connection details (apply only)
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' }}
+      # Write a connection file from state WITHOUT echoing the password to the log,
+      # then upload it as a private workflow artifact you download from the run page.
+      - name: Build connection file (apply or credentials)
+        if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.action == 'apply' || github.event.inputs.action == 'credentials') }}
         run: |
-          echo "### Lab is up :rocket:" >> "$GITHUB_STEP_SUMMARY"
+          umask 077
+          {
+            echo "Cortex AES Windows lab - RDP connection details"
+            echo "generated: $(date -u) UTC"
+            echo
+            echo "Host:     $(terraform output -raw public_ip):3389"
+            echo "OS:       $(terraform output -raw os_edition)"
+            echo "RDP from: $(terraform output -raw rdp_source_cidr)"
+            echo "User:     $(terraform output -raw admin_username)"
+            echo "Password: $(terraform output -raw admin_password)"
+          } > connection.txt
+          echo "Wrote connection.txt (password NOT shown in this log)."
+
+      - name: Upload connection file
+        if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.action == 'apply' || github.event.inputs.action == 'credentials') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rdp-connection
+          path: terraform/connection.txt
+          retention-days: 1
+
+      - name: Summary
+        if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.action == 'apply' || github.event.inputs.action == 'credentials') }}
+        run: |
+          echo "### Lab connection ready :rocket:" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Public IP: \`$(terraform output -raw public_ip)\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Public IP: \`$(terraform output -raw public_ip):3389\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- OS: \`$(terraform output -raw os_edition)\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- RDP allowed from: \`$(terraform output -raw rdp_source_cidr)\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- User: \`$(terraform output -raw admin_username)\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "> Admin password is sensitive and is **not** printed in CI. Both the password blob and the decryption key live in remote state, so retrieve it from any machine with AWS creds + state access:" >> "$GITHUB_STEP_SUMMARY"
-          echo "> \`\`\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "> cd terraform && cp backend.tf.ci backend.tf" >> "$GITHUB_STEP_SUMMARY"
-          echo "> terraform init -backend-config=\"bucket=<state-bucket>\" -backend-config=\"key=cortex-aes-windows-lab/terraform.tfstate\" -backend-config=\"region=<region>\"" >> "$GITHUB_STEP_SUMMARY"
-          echo "> terraform output -raw admin_password" >> "$GITHUB_STEP_SUMMARY"
-          echo "> \`\`\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Download the \`rdp-connection\` artifact below for the password.** (Kept out of the logs on purpose.)" >> "$GITHUB_STEP_SUMMARY"

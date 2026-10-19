@@ -69,20 +69,21 @@ That's it. The workflow refuses to run with a clear error if any of these are mi
 2. Choose `apply`. Watch it run.
 3. The run **summary** prints the public IP, OS, and RDP source CIDR.
 
-### Get the admin password
+### Get the admin password (no terminal needed)
 
-It's sensitive, so CI never prints it. Both the password blob and the decryption
-key are in remote state, so pull it from any machine with AWS creds:
+The password is sensitive, so it's never printed to the Actions log. Instead:
 
-```bash
-cd terraform
-cp backend.tf.ci backend.tf
-terraform init \
-  -backend-config="bucket=YOUR-UNIQUE-koi-lab-state" \
-  -backend-config="key=cortex-aes-windows-lab/terraform.tfstate" \
-  -backend-config="region=us-east-1"
-terraform output -raw admin_password
-```
+1. **Actions → terraform → Run workflow → `credentials`.** (An `apply` run also
+   produces this automatically.)
+2. When the run finishes, open it and download the **`rdp-connection`** artifact
+   from the *Artifacts* section at the bottom of the run page.
+3. It's a `connection.txt` with the host, user, and password.
+
+The artifact is private to repo collaborators and auto-expires in 1 day. Re-run
+`credentials` any time to regenerate it.
+
+> Prefer a terminal? The password also comes from `terraform output -raw admin_password`
+> once you've `init`'d against the remote state (bucket/key/region as in step 2 of setup).
 
 Then RDP to the public IP as `Administrator`.
 
