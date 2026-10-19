@@ -69,7 +69,7 @@ variable "root_volume_gb" {
 ############################################
 
 variable "allowed_rdp_cidr" {
-  description = "CIDR allowed to reach RDP (3389). Set this to YOUR public IP as a /32, e.g. \"203.0.113.7/32\". Leave empty to auto-detect your current egress IP via the http data source."
+  description = "Source allowed to reach RDP (3389). Set to YOUR PUBLIC IP (from https://checkip.amazonaws.com). A bare IP (\"203.0.113.7\") or a CIDR (\"203.0.113.7/32\") both work - a bare IP gets /32 appended automatically. Do NOT use a private 10./172.16./192.168. address: it will not reach a public EC2 instance from the internet. Leave empty to auto-detect your current egress IP."
   type        = string
   default     = ""
 }

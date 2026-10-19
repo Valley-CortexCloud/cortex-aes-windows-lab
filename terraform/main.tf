@@ -13,7 +13,12 @@ data "http" "my_ip" {
 }
 
 locals {
-  detected_ip = var.allowed_rdp_cidr == "" ? "${trimspace(data.http.my_ip[0].response_body)}/32" : var.allowed_rdp_cidr
+  # Allow the user to pass either a bare IP ("203.0.113.7") or a full CIDR
+  # ("203.0.113.7/32"). If no mask is present, append /32. Auto-detect (empty var)
+  # also gets /32.
+  detected_ip = var.allowed_rdp_cidr == "" ? "${trimspace(data.http.my_ip[0].response_body)}/32" : (
+    can(regex("/[0-9]+$", var.allowed_rdp_cidr)) ? var.allowed_rdp_cidr : "${var.allowed_rdp_cidr}/32"
+  )
 
   is_win11 = var.os_edition == "windows11"
 
