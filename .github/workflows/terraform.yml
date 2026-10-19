@@ -1,0 +1,132 @@
+name: terraform
+
+# Push-button deploy/destroy of the lab VM using AWS access keys in GitHub secrets.
+# - Pull requests run `plan` only (safe preview).
+# - Manual runs (Actions tab -> Run workflow) let you pick plan / apply / destroy.
+#
+# SETUP REQUIRED (one time) before this works — see docs/CICD.md:
+#   1. Create a state bucket once (any machine with AWS creds):
+#        aws s3 mb s3://<your-unique-state-bucket> --region us-east-1
+#   2. Secrets (Settings -> Secrets and variables -> Actions -> Secrets):
+#        AWS_ACCESS_KEY_ID        key for a dedicated, lab-scoped IAM user
+#        AWS_SECRET_ACCESS_KEY    its secret
+#   3. Variables (same page -> Variables tab):
+#        AWS_REGION          e.g. us-east-1
+#        TF_STATE_BUCKET     the bucket name from step 1
+#        ALLOWED_RDP_CIDR    YOUR public IP as a /32, e.g. 203.0.113.7/32
+#
+#   Tip: scope the IAM user to this lab and DELETE its access key when the POV
+#   wraps. Keys in CI are fine for a throwaway lab; just don't leave them live.
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform.yml"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Terraform action to run"
+        type: choice
+        required: true
+        default: plan
+        options: [plan, apply, destroy]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  # Feed Terraform variables from repo variables. TF_VAR_* is how Terraform
+  # picks up vars from the environment.
+  TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+  TF_VAR_allowed_rdp_cidr: ${{ vars.ALLOWED_RDP_CIDR }}
+
+jobs:
+  terraform:
+    name: terraform ${{ github.event.inputs.action || 'plan' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Guard - required config present
+        run: |
+          missing=0
+          for v in AWS_REGION TF_STATE_BUCKET ALLOWED_RDP_CIDR; do
+            if [ -z "${!v}" ]; then echo "::error::Repo variable $v is not set (Settings -> Variables)."; missing=1; fi
+          done
+          for s in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            if [ -z "${!s}" ]; then echo "::error::Secret $s is not set (Settings -> Secrets)."; missing=1; fi
+          done
+          [ "$missing" = "0" ] || { echo "See docs/CICD.md for one-time setup."; exit 1; }
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          ALLOWED_RDP_CIDR: ${{ vars.ALLOWED_RDP_CIDR }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Configure AWS credentials (access keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: Activate S3 backend
+        run: cp backend.tf.ci backend.tf
+
+      - name: Terraform fmt check (informational)
+        continue-on-error: true
+        run: terraform fmt -check -recursive -diff
+
+      - name: Terraform init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=cortex-aes-windows-lab/terraform.tfstate" \
+            -backend-config="region=${{ vars.AWS_REGION }}"
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform plan
+        if: ${{ github.event.inputs.action != 'destroy' }}
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Terraform apply
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' }}
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Terraform destroy
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy' }}
+        run: terraform destroy -input=false -auto-approve
+
+      - name: Connection details (apply only)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' }}
+        run: |
+          echo "### Lab is up :rocket:" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Public IP: \`$(terraform output -raw public_ip)\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- OS: \`$(terraform output -raw os_edition)\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- RDP allowed from: \`$(terraform output -raw rdp_source_cidr)\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "> Admin password is sensitive and is **not** printed in CI. Both the password blob and the decryption key live in remote state, so retrieve it from any machine with AWS creds + state access:" >> "$GITHUB_STEP_SUMMARY"
+          echo "> \`\`\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "> cd terraform && cp backend.tf.ci backend.tf" >> "$GITHUB_STEP_SUMMARY"
+          echo "> terraform init -backend-config=\"bucket=<state-bucket>\" -backend-config=\"key=cortex-aes-windows-lab/terraform.tfstate\" -backend-config=\"region=<region>\"" >> "$GITHUB_STEP_SUMMARY"
+          echo "> terraform output -raw admin_password" >> "$GITHUB_STEP_SUMMARY"
+          echo "> \`\`\`" >> "$GITHUB_STEP_SUMMARY"

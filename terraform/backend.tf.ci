@@ -1,0 +1,17 @@
+# Remote state (S3). Required for CI so the workflow can track and destroy what
+# it builds. This file is named .ci on purpose: it is INERT for local use.
+#
+# - LOCAL:  this file is ignored (not a .tf file), so `terraform init` uses
+#           LOCAL state and you need no S3 bucket at all.
+# - CI:     the GitHub Action copies backend.tf.ci -> backend.tf, then runs
+#           terraform init -backend-config="bucket=..." -backend-config="key=..."
+#                          -backend-config="region=..."
+#           so nothing environment-specific is hardcoded here.
+terraform {
+  backend "s3" {
+    # bucket  = supplied via -backend-config
+    # key     = supplied via -backend-config (e.g. "cortex-aes-windows-lab/terraform.tfstate")
+    # region  = supplied via -backend-config
+    encrypt = true
+  }
+}

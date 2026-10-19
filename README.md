@@ -51,8 +51,17 @@ provisioning/   PowerShell "light-up" payload + ground-truth inventory generator
 koi/            Deploy scripts for all 3 methods + uninstall; artifacts/ is where
                 YOU drop Koi.msi / mdm.ps1 (gitignored)
 use-cases/      POV test matrix + scorecard
-docs/           Windows 11 notes
+.github/        GitHub Actions workflow for push-button deploy/destroy
+docs/           Windows 11 notes + CI/CD setup
 ```
+
+## Two ways to run it
+
+- **Push-button (GitHub Actions)** — deploy/destroy from the Actions tab. Needs a
+  one-time ~5-min setup (AWS keys as secrets + a state bucket). See
+  [`docs/CICD.md`](docs/CICD.md). Best once you're past first-run tinkering.
+- **Local** — run Terraform yourself with your own AWS creds (below). Fastest for
+  first-time iteration; no bucket or secrets needed.
 
 ## Prerequisites
 
