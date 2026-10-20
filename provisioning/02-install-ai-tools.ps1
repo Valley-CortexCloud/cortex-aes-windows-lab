@@ -50,7 +50,10 @@ function Invoke-Installer($path, [string[]]$arguments, [int]$timeoutSec = 180) {
   # Run an installer but NEVER block forever. If it outlives the timeout, leave it
   # running in the background and move on.
   try {
-    $p = Start-Process -FilePath $path -ArgumentList $arguments -PassThru -ErrorAction Stop
+    # Start-Process rejects an empty -ArgumentList, so only include it when set.
+    $startArgs = @{ FilePath = $path; PassThru = $true; ErrorAction = "Stop" }
+    if ($arguments -and $arguments.Count -gt 0) { $startArgs.ArgumentList = $arguments }
+    $p = Start-Process @startArgs
     if ($p.WaitForExit($timeoutSec * 1000)) {
       Write-Host "  installer exited (code $($p.ExitCode))."
     } else {
