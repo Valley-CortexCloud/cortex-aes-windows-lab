@@ -17,6 +17,7 @@ param(
   [switch]$SkipAITools,     # skip Cursor/Windsurf/Claude Desktop/Ollama
   [switch]$SkipExtensions,  # skip VSCode + browser extensions
   [switch]$SkipMcp,         # skip MCP server configs
+  [switch]$SkipCodingAgents,# skip Claude Code CLI (needed for AIDR activity)
   [switch]$InventoryOnly    # only (re)generate expected-inventory.json
 )
 
@@ -42,6 +43,8 @@ if (-not $SkipBase)       { Section "01 Base apps";        & "$here\01-install-b
 if (-not $SkipAITools)    { Section "02 AI tools";         & "$here\02-install-ai-tools.ps1" }
 if (-not $SkipExtensions) { Section "03 Extensions";       & "$here\03-install-extensions.ps1" }
 if (-not $SkipMcp)        { Section "04 MCP servers";      & "$here\04-configure-mcp.ps1" }
+# 06 runs before inventory so the coding agent is captured in ground truth.
+if (-not $SkipCodingAgents) { Section "06 Coding agents (AIDR)"; & "$here\06-install-coding-agents.ps1" }
 
 Section "05 Inventory (ground truth for what Koi SHOULD find)"
 & "$here\05-inventory.ps1"

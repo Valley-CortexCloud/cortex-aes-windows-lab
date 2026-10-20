@@ -75,6 +75,8 @@ $inv = [ordered]@{
     cursor         = (Test-Path "$env:LOCALAPPDATA\Programs\cursor\Cursor.exe") -or [bool](Get-Command cursor -ErrorAction SilentlyContinue)
     windsurf       = (Test-Path "$env:LOCALAPPDATA\Programs\Windsurf\Windsurf.exe")
     claude_desktop = (Test-Path "$env:LOCALAPPDATA\AnthropicClaude") -or (Test-Path "$env:APPDATA\Claude")
+    # Coding agents (these - NOT Claude Desktop - are what populate Koi AIDR)
+    claude_code    = [bool](Get-Command claude -ErrorAction SilentlyContinue)
   }
 }
 

@@ -93,7 +93,17 @@ policy changes are reverted.
 first-run download time vs steady-state run time.
 **Pass:** Steady-state runs are short and low-footprint; you have real figures to quote.
 
-## 13. 🔵 Reporting / endpoint view
+## 13. 🟡 Runtime Agent Activity (AIDR)
+**Objective:** Prove Koi captures live AI *coding agent* sessions — the headline
+runtime capability. **Note: Claude Desktop does NOT count** (not a coding agent);
+you need Claude Code / Cursor / Codex / Copilot CLI. See `aidr-runtime-activity.md`.
+**Steps:** Install Claude Code CLI (`06-install-coding-agents.ps1`), authenticate,
+run a task that uses a tool (`claude -p "create a file..." --dangerously-skip-permissions`).
+**Pass:** A session appears in Runtime Agent Activity with the tool action in its
+timeline, shown as governed by the deployed enforcement policy. Bonus: set a block
+policy and confirm the action is stopped inline.
+
+## 14. 🔵 Reporting / endpoint view
 **Objective:** Validate the console's endpoint fields for ops handoff.
 **Steps:** In **Covered endpoints**, confirm Hostname, Last seen, Registered at,
 Script version, Serial — cross-check Serial/Hostname against the inventory.
