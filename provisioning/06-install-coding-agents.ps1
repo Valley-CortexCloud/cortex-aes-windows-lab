@@ -28,7 +28,11 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
   Write-Host "Claude Code CLI already installed - skipping." -ForegroundColor DarkGray
 } else {
   Write-Host "Installing Claude Code CLI (npm -g @anthropic-ai/claude-code) ..." -ForegroundColor Yellow
-  cmd /c "npm install -g @anthropic-ai/claude-code" 2>&1 | Out-Host
+  # --allow-scripts lets the package's own postinstall run (npm blocks it by
+  # default now). Capture combined output as strings so npm's stderr warnings
+  # don't surface as a red PowerShell NativeCommandError.
+  $npmOut = cmd /c "npm install -g --allow-scripts=@anthropic-ai/claude-code 2>&1"
+  $npmOut | ForEach-Object { Write-Host "  $_" }
   # Refresh PATH so the freshly-installed global bin resolves this session.
   $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" +
               [System.Environment]::GetEnvironmentVariable("Path","User")
