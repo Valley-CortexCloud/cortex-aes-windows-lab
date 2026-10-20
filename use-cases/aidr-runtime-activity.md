@@ -15,7 +15,7 @@ native hooks:
 
 | Agent | What it is | Install | Cost |
 |-------|-----------|---------|------|
-| **Gemini CLI** | Google's terminal agent | `npm i -g @google/gemini-cli` | **FREE** — personal Google account, ~1000 req/day, no card |
+| **Gemini CLI** | Google's terminal agent | `npm i -g @google/gemini-cli` | **FREE** — free API key from AI Studio (no card); Google OAuth login now deprecated |
 | **Antigravity** | Google agentic IDE (GUI) | vendor installer | **FREE** — Google account |
 | **Claude Code** | Anthropic's terminal agent | `npm i -g @anthropic-ai/claude-code` | Anthropic API key / subscription |
 | **Cursor** | AI IDE (GUI) | winget `Anysphere.Cursor` | Free tier (limited) / paid |
@@ -34,14 +34,27 @@ On the box, after `bootstrap.ps1` has run (or run `06-install-coding-agents.ps1`
 on its own). Use whichever agent you have credentials for.
 
 **Free path — Gemini CLI (recommended for demos):**
+
+> Google deprecated "Sign in with Google" for the standalone Gemini CLI
+> ("migrate to Antigravity"). The free route now is a **free API key** from
+> Google AI Studio — no credit card. Create one at
+> https://aistudio.google.com/apikey in a project with **billing OFF** (enabling
+> billing ends that project's free tier). Free tier is ~10-15 req/min, a few
+> hundred to 1,500/day — ample for demos.
+
 ```powershell
-# 1. First run opens a browser to log in with a personal Google account (free)
-gemini
+# 1. Set the free API key (or choose "2. Use Gemini API Key" in the first-run menu)
+$env:GEMINI_API_KEY = "AIza...your-free-key..."
 
 # 2. Run a task that USES A TOOL. --yolo auto-approves the action (lab only).
 gemini -p "create a file koi-test.txt with 'hello from the koi lab'" --yolo
 gemini -p "run the shell command: whoami" --yolo
 ```
+
+**Free GUI alternative — Antigravity:** Google's free agentic IDE (the product
+they're steering free users to). Also Koi-supported (Koi deploys its hooks to
+`~/.gemini/config/hooks.json`). Use this if the API-key route is geo-blocked or
+you prefer a GUI.
 
 **Claude Code (needs Anthropic creds):**
 ```powershell

@@ -65,8 +65,10 @@ Write-Host @"
 AIDR will stay EMPTY until a supported coding agent actually RUNS a task.
 Claude Desktop chats do NOT count. Generate a session with whichever you have creds for:
 
-  FREE (personal Google account, ~1000 req/day, no card):
-    gemini                                          # first run: pick 'Login with Google'
+  FREE (Gemini - free API key, no card. NOTE: 'Sign in with Google' is deprecated
+  for Gemini CLI; use a free API key from https://aistudio.google.com/apikey in a
+  project with billing OFF):
+    `$env:GEMINI_API_KEY = "AIza...your-free-key..."
     gemini -p "create a file koi-test.txt with 'hello from the koi lab'" --yolo
 
   Or Claude Code (needs Anthropic API key / subscription):
