@@ -13,37 +13,47 @@ to Koi by design.
 AIDR only populates from **supported coding agents**, captured via each agent's
 native hooks:
 
-| Agent | What it is | Install |
-|-------|-----------|---------|
-| **Claude Code** | Anthropic's terminal coding agent | `npm i -g @anthropic-ai/claude-code` |
-| **Cursor** | AI IDE (GUI) | winget `Anysphere.Cursor` |
-| **Codex CLI** | OpenAI terminal agent | `npm i -g @openai/codex` |
-| **GitHub Copilot CLI** | Copilot in the terminal | `npm i -g @github/copilot` |
-| **Kiro** | AWS agentic IDE | vendor installer |
-| **Antigravity** | Google agentic IDE | vendor installer |
+| Agent | What it is | Install | Cost |
+|-------|-----------|---------|------|
+| **Gemini CLI** | Google's terminal agent | `npm i -g @google/gemini-cli` | **FREE** — personal Google account, ~1000 req/day, no card |
+| **Antigravity** | Google agentic IDE (GUI) | vendor installer | **FREE** — Google account |
+| **Claude Code** | Anthropic's terminal agent | `npm i -g @anthropic-ai/claude-code` | Anthropic API key / subscription |
+| **Cursor** | AI IDE (GUI) | winget `Anysphere.Cursor` | Free tier (limited) / paid |
+| **Codex CLI** | OpenAI terminal agent | `npm i -g @openai/codex` | OpenAI API / ChatGPT plan |
+| **GitHub Copilot CLI** | Copilot in the terminal | `npm i -g @github/copilot` | Copilot plan |
+| **Kiro** | AWS agentic IDE | vendor installer | varies |
 
-The lab installs **Claude Code CLI** (`provisioning/06-install-coding-agents.ps1`)
-because Koi already deploys its enforcement hooks. Any of the others work too.
+The lab's `06-install-coding-agents.ps1` installs **both Gemini CLI (free) and
+Claude Code**. For no-cost demos use **Gemini CLI** — every supported agent is
+cloud-backed and needs *some* account, but Gemini's free tier needs only a Google
+login (no payment). You can't point a supported agent at local Ollama to avoid this.
 
-## Generate a session (Claude Code)
+## Generate a session
 
 On the box, after `bootstrap.ps1` has run (or run `06-install-coding-agents.ps1`
-on its own):
+on its own). Use whichever agent you have credentials for.
 
+**Free path — Gemini CLI (recommended for demos):**
 ```powershell
-# 1. Authenticate once (needs an Anthropic API key or a Claude subscription)
-claude          # then /login, or:  $env:ANTHROPIC_API_KEY = "sk-ant-..."
+# 1. First run opens a browser to log in with a personal Google account (free)
+gemini
 
-# 2. Run a task that USES A TOOL (file write, shell command, MCP call)
-claude -p "create a file koi-test.txt containing 'hello from the koi lab'" --dangerously-skip-permissions
-claude -p "run the shell command: whoami" --dangerously-skip-permissions
+# 2. Run a task that USES A TOOL. --yolo auto-approves the action (lab only).
+gemini -p "create a file koi-test.txt with 'hello from the koi lab'" --yolo
+gemini -p "run the shell command: whoami" --yolo
 ```
 
-Each of those fires Claude Code's PreToolUse/PostToolUse hooks → Koi captures the
-events → a **session** appears in **Runtime Agent Activity** within a minute or two.
+**Claude Code (needs Anthropic creds):**
+```powershell
+claude          # then /login, or:  $env:ANTHROPIC_API_KEY = "sk-ant-..."
+claude -p "create a file koi-test.txt containing 'hello from the koi lab'" --dangerously-skip-permissions
+```
 
-> `--dangerously-skip-permissions` is a lab convenience so the agent doesn't pause
-> for approval. Never use it on a real workstation.
+Either fires the agent's PreToolUse/PostToolUse hooks → Koi captures the events →
+a **session** appears in **Runtime Agent Activity** within a minute or two.
+
+> `--yolo` / `--dangerously-skip-permissions` auto-approve the agent's actions so it
+> doesn't pause for a prompt. Lab convenience only — never on a real workstation.
 
 ## What to look for in the AIDR console
 

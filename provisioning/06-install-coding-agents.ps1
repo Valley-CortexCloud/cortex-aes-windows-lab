@@ -44,18 +44,37 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
   Write-Warning "Claude Code CLI not on PATH yet - open a NEW shell and check 'claude --version'."
 }
 
+# --- Gemini CLI (FREE with a personal Google account - best no-cost demo path) ---
+if (Get-Command gemini -ErrorAction SilentlyContinue) {
+  Write-Host "Gemini CLI already installed - skipping." -ForegroundColor DarkGray
+} else {
+  Write-Host "Installing Gemini CLI (npm -g @google/gemini-cli) - FREE tier, ~1000 req/day ..." -ForegroundColor Yellow
+  $gOut = cmd /c "npm install -g --allow-scripts=@google/gemini-cli 2>&1"
+  $gOut | ForEach-Object { Write-Host "  $_" }
+  $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" +
+              [System.Environment]::GetEnvironmentVariable("Path","User")
+}
+if (Get-Command gemini -ErrorAction SilentlyContinue) {
+  Write-Host ("Gemini CLI: " + ((gemini --version 2>$null) -join ' ')) -ForegroundColor Green
+} else {
+  Write-Warning "Gemini CLI not on PATH yet - open a NEW shell and check 'gemini --version'."
+}
+
 Write-Host @"
 
 AIDR will stay EMPTY until a supported coding agent actually RUNS a task.
-Claude Desktop chats do NOT count. To generate a session:
+Claude Desktop chats do NOT count. Generate a session with whichever you have creds for:
 
-  1. Authenticate once:   claude     (then /login, or set ANTHROPIC_API_KEY)
-  2. Run a task that uses a tool, e.g.:
-       claude -p "create a file koi-test.txt containing hello from the koi lab" --dangerously-skip-permissions
+  FREE (personal Google account, ~1000 req/day, no card):
+    gemini                                          # first run: pick 'Login with Google'
+    gemini -p "create a file koi-test.txt with 'hello from the koi lab'" --yolo
 
-That fires Claude Code's hooks -> Koi records a session in Runtime Agent Activity,
+  Or Claude Code (needs Anthropic API key / subscription):
+    claude                                          # then /login
+    claude -p "create a file koi-test.txt with hello" --dangerously-skip-permissions
+
+Either fires the agent's hooks -> Koi records a session in Runtime Agent Activity,
 governed by the enforcement policy Koi already deployed.
 
-(--dangerously-skip-permissions is for this throwaway lab only; never use it on a
-real workstation.)
+(--yolo / --dangerously-skip-permissions auto-approve actions - lab use only.)
 "@ -ForegroundColor Cyan
