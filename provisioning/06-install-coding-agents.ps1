@@ -19,6 +19,16 @@ $ErrorActionPreference = "Continue"
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" +
             [System.Environment]::GetEnvironmentVariable("Path","User")
 
+$haveWinget = [bool](Get-Command winget -ErrorAction SilentlyContinue)
+function Try-Winget($id) {
+  if (-not $haveWinget) { return $false }
+  Write-Host "  winget install $id ..." -ForegroundColor DarkCyan
+  try {
+    winget install --id $id -e --silent --accept-package-agreements --accept-source-agreements --disable-interactivity 2>&1 | Out-Null
+    return ($LASTEXITCODE -eq 0)
+  } catch { return $false }
+}
+
 if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
   Write-Warning "npm not found - run 01-install-base.ps1 first (installs Node.js). Skipping coding agents."
   return
