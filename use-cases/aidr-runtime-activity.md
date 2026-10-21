@@ -117,8 +117,32 @@ to close.
 
 ## Enforcement test (the real differentiator)
 
-1. In Koi, set a runtime policy to **block** a command pattern (e.g. anything touching
-   `curl` or a secrets path).
-2. `claude -p "run the shell command: curl https://example.com" --dangerously-skip-permissions`
-3. Confirm the action is **blocked** in the session timeline, with the policy named
+1. In Koi, create a runtime policy with a **Shell execution** rule, Action **Block**,
+   value `*curl*` (see matching note below). Make sure it's **enabled**, not draft.
+2. **Force the policy onto the endpoint** — it only syncs on the Koi service cycle:
+   ```powershell
+   Restart-Service KoiService ; Start-Sleep 60
+   Get-Content C:\ProgramData\Koi\agent_policies.json   # confirm your rule is present
+   ```
+3. In the agent, ask it to run `curl -I https://example.com`.
+4. Confirm the action is **blocked** in the session timeline, with the policy named
    under *Governed by*. That's agentic runtime control working end to end.
+
+### If the block doesn't fire (common)
+
+Because activity still records, the hooks are fine — the issue is the policy:
+
+- **Not synced yet.** Enforcement reads the *local* `C:\ProgramData\Koi\agent_policies.json`,
+  refreshed only on the service's run cycle (hourly by default). A just-created policy
+  won't be on the endpoint until the next cycle — `Restart-Service KoiService` forces it,
+  or reinstall the service with `INTERVAL=5` for fast lab loops.
+- **`curl` vs `curl.exe`.** A single command name matches only as a whole token, so a
+  rule value of `curl` does **not** match `curl.exe` (what the agent runs on Windows).
+  Use `curl.exe` or `*curl*`, or a **Network (URLs/IPs)** rule for the domain.
+- **Action = Ask, not Block**, or the policy is still a **draft** — check both.
+- **Agent coverage.** Confirm the agent enforces that rule type (support matrix in Koi's
+  "Runtime policy rule types" doc). Antigravity supports Shell + Network; it does **not**
+  support Prompts rules.
+
+> **ADP takeaway:** policy edits are only as fresh as the service cycle. "Set a rule →
+> test immediately" will look broken on an hourly interval. Enforcement is not instant.
