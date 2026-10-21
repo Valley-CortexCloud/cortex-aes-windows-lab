@@ -60,6 +60,21 @@ if (Get-Command gemini -ErrorAction SilentlyContinue) {
   Write-Warning "Gemini CLI not on PATH yet - open a NEW shell and check 'gemini --version'."
 }
 
+# --- Antigravity (FREE agentic IDE - the ONLY free agent that reports to Koi) ---
+# NOTE: install is automated via winget, but the Google-account SIGN-IN is manual
+# and interactive (and required - an API-key session silently disables Koi hooks).
+$agInstalled = (Test-Path "$env:LOCALAPPDATA\Programs\Antigravity\Antigravity.exe") -or
+               (Test-Path "$env:LOCALAPPDATA\Antigravity") -or
+               (Test-Path "$env:LOCALAPPDATA\Programs\antigravity\Antigravity.exe")
+if ($agInstalled) {
+  Write-Host "Antigravity already installed - skipping." -ForegroundColor DarkGray
+} else {
+  Write-Host "Installing Antigravity (winget Google.Antigravity) ..." -ForegroundColor Yellow
+  if (-not (Try-Winget "Google.Antigravity")) {
+    Write-Warning "Antigravity not installed (winget unavailable or failed). Download from https://antigravity.google - it's the FREE path that reports to Koi (needs Google-account login, NOT an API key)."
+  }
+}
+
 Write-Host @"
 
 AIDR will stay EMPTY until a supported coding agent actually RUNS a task.
