@@ -65,18 +65,23 @@ Write-Host @"
 AIDR will stay EMPTY until a supported coding agent actually RUNS a task.
 Claude Desktop chats do NOT count. Generate a session with whichever you have creds for:
 
-  FREE (Gemini - free API key, no card. NOTE: 'Sign in with Google' is deprecated
-  for Gemini CLI; use a free API key from https://aistudio.google.com/apikey in a
-  project with billing OFF):
-    `$env:GEMINI_API_KEY = "AIza...your-free-key..."
-    gemini -p "create a file koi-test.txt with 'hello from the koi lab'" --yolo
+  *** CRITICAL KOI GOTCHA ***
+  A GEMINI_API_KEY session loads Koi's hooks but NEVER dispatches them - so any
+  Gemini/Antigravity run on an API key reports NOTHING to Koi, with no error.
+  Hook dispatch requires a GOOGLE ACCOUNT sign-in. And Gemini CLI's free Google
+  login is deprecated. Net result: the only FREE agent that actually reports to
+  Koi is Antigravity signed in with a Google account.
 
-  Or Claude Code (needs Anthropic API key / subscription):
+  FREE working path -> Antigravity (Google's free agentic IDE), GOOGLE ACCOUNT login:
+    1. Install from https://antigravity.google   (do NOT set GEMINI_API_KEY/modeProvider)
+    2. Sign in with a Google account (free)
+    3. Ask it to read/edit a file -> hooks dispatch -> Koi records the session
+
+  Paid path -> Claude Code (needs Anthropic creds). Deliver managed settings
+  file-based; do NOT also set Claude Code settings in the claude.ai admin console,
+  which overrides file-based settings and silently stops Koi's hooks:
     claude                                          # then /login
     claude -p "create a file koi-test.txt with hello" --dangerously-skip-permissions
 
-Either fires the agent's hooks -> Koi records a session in Runtime Agent Activity,
-governed by the enforcement policy Koi already deployed.
-
-(--yolo / --dangerously-skip-permissions auto-approve actions - lab use only.)
+(--dangerously-skip-permissions auto-approves actions - lab use only.)
 "@ -ForegroundColor Cyan

@@ -15,8 +15,8 @@ native hooks:
 
 | Agent | What it is | Install | Cost |
 |-------|-----------|---------|------|
-| **Gemini CLI** | Google's terminal agent | `npm i -g @google/gemini-cli` | **FREE** — free API key from AI Studio (no card); Google OAuth login now deprecated |
-| **Antigravity** | Google agentic IDE (GUI) | vendor installer | **FREE** — Google account |
+| **Antigravity** | Google agentic IDE (GUI) | https://antigravity.google | **FREE** — Google account sign-in (the only free path that reports to Koi) |
+| **Gemini CLI** | Google's terminal agent | `npm i -g @google/gemini-cli` | API key loads hooks but Koi records nothing; free Google login deprecated — ❌ for Koi |
 | **Claude Code** | Anthropic's terminal agent | `npm i -g @anthropic-ai/claude-code` | Anthropic API key / subscription |
 | **Cursor** | AI IDE (GUI) | winget `Anysphere.Cursor` | Free tier (limited) / paid |
 | **Codex CLI** | OpenAI terminal agent | `npm i -g @openai/codex` | OpenAI API / ChatGPT plan |
@@ -33,28 +33,35 @@ login (no payment). You can't point a supported agent at local Ollama to avoid t
 On the box, after `bootstrap.ps1` has run (or run `06-install-coding-agents.ps1`
 on its own). Use whichever agent you have credentials for.
 
-**Free path — Gemini CLI (recommended for demos):**
+### ⚠️ CRITICAL: an API key silently disables Koi's hooks
 
-> Google deprecated "Sign in with Google" for the standalone Gemini CLI
-> ("migrate to Antigravity"). The free route now is a **free API key** from
-> Google AI Studio — no credit card. Create one at
-> https://aistudio.google.com/apikey in a project with **billing OFF** (enabling
-> billing ends that project's free tier). Free tier is ~10-15 req/min, a few
-> hundred to 1,500/day — ample for demos.
+This is the single biggest trap in AIDR testing, and it's documented behavior:
 
+> **A Gemini-family session running on a `GEMINI_API_KEY` loads Koi's hooks but
+> never dispatches them.** Koi records NOTHING, with no error. Hook dispatch
+> requires a **Google account sign-in**. (Antigravity's hidden `modeProvider`
+> setting forces this same API-key mode.)
+
+Combined with Google deprecating the free "Sign in with Google" for the standalone
+**Gemini CLI**, the practical result is:
+
+- **Gemini CLI + API key** → runs, but reports nothing to Koi. ❌
+- **Gemini CLI + Google login** → login path deprecated. ❌
+- **Antigravity + Google account sign-in** → hooks fire, Koi records. ✅ **(the free path)**
+
+**Free path — Antigravity with a Google account:**
 ```powershell
-# 1. Set the free API key (or choose "2. Use Gemini API Key" in the first-run menu)
-$env:GEMINI_API_KEY = "AIza...your-free-key..."
-
-# 2. Run a task that USES A TOOL. --yolo auto-approves the action (lab only).
-gemini -p "create a file koi-test.txt with 'hello from the koi lab'" --yolo
-gemini -p "run the shell command: whoami" --yolo
+# Make sure no API key / modeProvider is forcing API-key mode:
+Remove-Item Env:GEMINI_API_KEY -ErrorAction SilentlyContinue
+[Environment]::SetEnvironmentVariable("GEMINI_API_KEY", $null, "User")
+[Environment]::SetEnvironmentVariable("GEMINI_API_KEY", $null, "Machine")
+Get-ChildItem "$env:USERPROFILE","$env:APPDATA","$env:LOCALAPPDATA" -Recurse -Filter settings.json -ErrorAction SilentlyContinue |
+  Select-String -Pattern "modeProvider" -List | Select-Object Path   # remove if found
 ```
-
-**Free GUI alternative — Antigravity:** Google's free agentic IDE (the product
-they're steering free users to). Also Koi-supported (Koi deploys its hooks to
-`~/.gemini/config/hooks.json`). Use this if the API-key route is geo-blocked or
-you prefer a GUI.
+1. Install Antigravity from https://antigravity.google
+2. **Sign in with a Google account** (free — no card).
+3. Ask it to read or edit a file. Removing the API-key setting restores hook
+   dispatch immediately (no restart). A session appears in Koi within ~1-2 min.
 
 **Claude Code (needs Anthropic creds):**
 ```powershell
@@ -85,6 +92,28 @@ Open the session and verify:
 - **Prompt redaction** — prompts show as `[PROMPT REDACTED]` by default. An admin can
   turn redaction off under Settings → Advanced Settings → AI Agents Runtime Visibility
   (forward-only; past prompts are never recoverable).
+
+## Silent hook-disablers (critical for ADP rollout)
+
+Koi's files can be correctly deployed and still fire nothing because an agent
+setting silently suppresses hook dispatch. No error is raised. Audit these before
+concluding coverage is complete:
+
+- **Antigravity / Gemini** — an API-key session (`GEMINI_API_KEY` + hidden
+  `modeProvider`) loads hooks but never dispatches. Use Google account sign-in.
+- **Claude Code** — **server-managed settings** (set in the claude.ai admin console)
+  *override* file-based settings entirely, and Koi's hooks never load. The two
+  delivery methods do not merge. Govern Claude Code via **file-based** managed
+  settings or OS-level MDM; do **not** configure it in the claude.ai admin console
+  on machines Koi should govern.
+- **Claude Code hook kill-switches** — `disableAllHooks` must be unset/false, and
+  `allowManagedHooksOnly` must be unset, or Koi's hooks stop firing.
+- **GitHub Copilot CLI** — requires one app restart after hook deployment before
+  hooks take effect.
+
+These are strong POV talking points: "the control can be present on disk and still
+be silently off" is exactly the assurance gap ADP needs Koi (and this validation)
+to close.
 
 ## Enforcement test (the real differentiator)
 
